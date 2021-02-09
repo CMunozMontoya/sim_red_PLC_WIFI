@@ -72,10 +72,13 @@ int main (int argc, char *argv[])
 
     NodeContainer PLCNodes;
     PLCNodes.Create(10);
-
+    
     NodeContainer p2pNodes;
     p2pNodes.Add(APNodes.Get(0));
     p2pNodes.Add(PLCNodes.Get(0));
+
+    NodeContainer STANodes;
+    STANodes.Create(14);
 
     //Conectar p2p entre nodos 0 (router/modem) y 2(PLC)
     PointToPointHelper pointToPoint;
@@ -111,6 +114,8 @@ int main (int argc, char *argv[])
     NetDeviceContainer apDevices = wifi.Install (phy, wifiMac, APNodes);
     devices.Add (apDevices);
 
+
+
     //-----------------------------------------------------------------------------
     //RED PLC ("lan csma")
     CsmaHelper csma;
@@ -123,6 +128,11 @@ int main (int argc, char *argv[])
     devices.Add (csmaDevices);              
 
     //--------------------------------------------------------------------------------------
+
+    //RED STA
+    NetDeviceContainer STADevices = wifi.Install (phy, wifiMac, STANodes);
+    devices.Add (STADevices);
+
     //Asignar Posiciones de Nodos
     MobilityHelper mobility;
     Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
@@ -144,6 +154,29 @@ int main (int argc, char *argv[])
     mobility.Install (APNodes);
     mobility.Install (PLCNodes);
 
+    //-----------------------------------------------------------------------------
+    //Posciiones de Estaciones
+    MobilityHelper STAmobility;
+    Ptr<ListPositionAllocator> STApos = CreateObject<ListPositionAllocator> ();
+    positionAlloc->Add (Vector (58.9, 58.1, 0));    //0 - Asistente inteligente 1 (Living)
+    positionAlloc->Add (Vector (58.9, 68.0, 0));    //1 - Television 1 (Living)
+    positionAlloc->Add (Vector (58.9, 73.0, 0));    //2 - Consola de Videojuegos
+    positionAlloc->Add (Vector (48.0, 38.7, 0));    //3 - Alarma
+    positionAlloc->Add (Vector (25.5, 63.0, 0));    //4 - Lampara Inteligente 1 (Comedor)
+    positionAlloc->Add (Vector (25.6, 39.0, 0));    //5 - Control de Temperatura 1 (Comedor)   
+    positionAlloc->Add (Vector (64.0, 36.3, 0));    //6 - Equipo de Audio
+    positionAlloc->Add (Vector (12.7, 36.3, 0));    //7 - Television 2 (Dormitorio)
+    positionAlloc->Add (Vector (16.5, 14.4, 0));    //8 - Lampara Inteligente 2 (Dormitorio)
+    positionAlloc->Add (Vector (25.6, 14.4, 0));    //9 - Control de Temperatura 2 (Dormitorio)
+    positionAlloc->Add (Vector (06.0, 02.0, 0));    //10- Asistente inteligente 2 (Dormitorio) 
+    positionAlloc->Add (Vector (56.0, 02.5, 0));    //11- Notebook <-- Puede ser movil
+    positionAlloc->Add (Vector (49.0, 19.3, 0));    //12- Control de Temperatura 3 (Oficina)  
+    positionAlloc->Add (Vector (55.5, 19.3, 0));    //13- Lampara inteligente 3 (Oficina)
+    STAmobility.SetPositionAllocator (STApos);
+    STAmobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    STAmobility.Install(STANodes);  
+
+    //------------------------------------------------
     if (printPos)
     {
         PrintPosition("AP", &APNodes);
@@ -154,12 +187,13 @@ int main (int argc, char *argv[])
     InternetStackHelper internet;
     internet.Install (APNodes);
     internet.Install (PLCNodes);
+    internet.Install (STANodes);
 
     Ipv4AddressHelper ipv4;
 
     //AP
     ipv4.SetBase ("10.1.1.0", "255.255.255.0");
-    Ipv4InterfaceContainer apInterface = ipv4.Assign(apDevices);
+    Ipv4InterfaceContainer apInterface = ipv4.Assign (apDevices);
 
     //p2p
     ipv4.SetBase ("10.1.2.0", "255.255.255.0");
@@ -167,7 +201,11 @@ int main (int argc, char *argv[])
 
     //PLC
     ipv4.SetBase ("10.1.3.0", "255.255.255.0");
-    Ipv4InterfaceContainer csmaInterface = ipv4.Assign(csmaDevices);
+    Ipv4InterfaceContainer csmaInterface = ipv4.Assign (csmaDevices);
+
+    //STA
+    ipv4.SetBase ("10.1.4.0", "255.255.255.0");
+    Ipv4InterfaceContainer staInterface = ipv4.Assign (STADevices);
 
     return 0;
 }
