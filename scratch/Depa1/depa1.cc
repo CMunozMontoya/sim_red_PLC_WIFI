@@ -73,6 +73,18 @@ int main (int argc, char *argv[])
     NodeContainer PLCNodes;
     PLCNodes.Create(10);
 
+    NodeContainer p2pNodes;
+    p2pNodes.Add(APNodes.Get(0));
+    p2pNodes.Add(PLCNodes.Get(0));
+
+    //Conectar p2p entre nodos 0 (router/modem) y 2(PLC)
+    PointToPointHelper pointToPoint;
+    pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+    pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+    NetDeviceContainer p2pDevices;
+    p2pDevices = pointToPoint.Install (p2pNodes);
+
     //---------------------------------------------------------------------------------------------
     //Crear y Configurar Red Wifi
     YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
@@ -114,19 +126,19 @@ int main (int argc, char *argv[])
     //Asignar Posiciones de Nodos
     MobilityHelper mobility;
     Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-    positionAlloc->Add (Vector (60.0, 55.6, 0));    //0 - AP
+    positionAlloc->Add (Vector (60.0, 55.6, 0));    //0 - Router /Modem - AP
     positionAlloc->Add (Vector (61.0, 02.0, 0));    //1 - AP
-    positionAlloc->Add (Vector (60.0, 59.0, 0));    //2 - PLC
-    positionAlloc->Add (Vector (40.5, 72.5, 0));    //3 -
-    positionAlloc->Add (Vector (12.7, 72.5, 0));    //4 -
-    positionAlloc->Add (Vector (02.0, 48.4, 0));    //5 -
-    positionAlloc->Add (Vector (24.5, 39.0, 0));    //6 -
-    positionAlloc->Add (Vector (17.1, 38.7, 0));    //7 -
-    positionAlloc->Add (Vector (06.4, 02.0, 0));    //8 -
-    positionAlloc->Add (Vector (25.6, 02.0, 0));    //9 -
-    positionAlloc->Add (Vector (13.0, 53.4, 0));    //10-
-    positionAlloc->Add (Vector (52.0, 02.0, 0));    //11-
-    positionAlloc->Add (Vector (64.0, 33.8, 0));    //12- 
+    positionAlloc->Add (Vector (60.0, 59.0, 0));    //2 - PLC Conectado a Router via "cable"
+    positionAlloc->Add (Vector (40.5, 72.5, 0));    //3 - PLC
+    positionAlloc->Add (Vector (12.7, 72.5, 0));    //4 - PLC
+    positionAlloc->Add (Vector (02.0, 48.4, 0));    //5 - PLC
+    positionAlloc->Add (Vector (24.5, 39.0, 0));    //6 - PLC
+    positionAlloc->Add (Vector (17.1, 38.7, 0));    //7 - PLC
+    positionAlloc->Add (Vector (06.4, 02.0, 0));    //8 - PLC
+    positionAlloc->Add (Vector (25.6, 02.0, 0));    //9 - PLC
+    positionAlloc->Add (Vector (13.0, 53.4, 0));    //10- PLC
+    positionAlloc->Add (Vector (52.0, 02.0, 0));    //11- PLC
+    positionAlloc->Add (Vector (64.0, 33.8, 0));    //12- PLC
     mobility.SetPositionAllocator (positionAlloc);
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (APNodes);
@@ -144,10 +156,17 @@ int main (int argc, char *argv[])
     internet.Install (PLCNodes);
 
     Ipv4AddressHelper ipv4;
+
+    //AP
     ipv4.SetBase ("10.1.1.0", "255.255.255.0");
     Ipv4InterfaceContainer apInterface = ipv4.Assign(apDevices);
 
+    //p2p
     ipv4.SetBase ("10.1.2.0", "255.255.255.0");
+    Ipv4InterfaceContainer p2pInterfaces = ipv4.Assign (p2pDevices);
+
+    //PLC
+    ipv4.SetBase ("10.1.3.0", "255.255.255.0");
     Ipv4InterfaceContainer csmaInterface = ipv4.Assign(csmaDevices);
 
     return 0;
