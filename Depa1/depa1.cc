@@ -54,7 +54,7 @@ PrintPosition (std::string container_name, NodeContainer *container)
 }
 
 int main (int argc, char *argv[])
-{      
+{   
     //constantes"""
     std::string phyMode ("DsssRate1Mbps");  
 
@@ -65,6 +65,7 @@ int main (int argc, char *argv[])
 
     cmd.AddValue("printPos", "Imprimir posiciones de nodos", printPos);
 
+    cmd.Parse (argc,argv);
 
     //Crear contendedores
     NodeContainer APNodes;
@@ -73,20 +74,54 @@ int main (int argc, char *argv[])
     NodeContainer PLCNodes;
     PLCNodes.Create(10);
     
-    NodeContainer p2pNodes;
-    p2pNodes.Add(APNodes.Get(0));
-    p2pNodes.Add(PLCNodes.Get(0));
-
     NodeContainer STANodes;
     STANodes.Create(14);
+
+    //Contenedores p2p "ethernet"
+    NodeContainer p2pNodes;
+    p2pNodes.Add(APNodes.Get(0)); //router 1
+    p2pNodes.Add(PLCNodes.Get(0)); //plc 1
+
+    NodeContainer ethernet1;
+    ethernet1.Add (APNodes.Get (0)); //router 1
+    ethernet1.Add (STANodes.Get (1)); //Tele 1
+
+    NodeContainer ethernet2;
+    ethernet2.Add (APNodes.Get (0)); //router 1
+    ethernet2.Add (STANodes.Get (2)); //consola
+
+    NodeContainer ethernet3;
+    ethernet3.Add (APNodes.Get (1)); //router 2
+    ethernet3.Add (STANodes.Get (11)); //pc
+
+    //-----------------------------------------------------------------------------------------------
+    //Conexiones P2P    
+    
+    NetDeviceContainer p2pDevices;
+    NetDeviceContainer ethernet1Devices;
+    NetDeviceContainer ethernet2Devices;
+    NetDeviceContainer ethernet3Devices;
 
     //Conectar p2p entre nodos 0 (router/modem) y 2(PLC)
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
     pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
-
-    NetDeviceContainer p2pDevices;
     p2pDevices = pointToPoint.Install (p2pNodes);
+
+    PointToPointHelper ethernet1p2p;
+    ethernet1p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+    ethernet1p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+    ethernet1Devices = ethernet1p2p.Install (ethernet1);
+
+    PointToPointHelper ethernet2p2p;
+    ethernet2p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+    ethernet2p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+    ethernet2Devices = ethernet2p2p.Install (ethernet2);
+
+    PointToPointHelper ethernet3p2p;
+    ethernet3p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+    ethernet3p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+    ethernet3Devices = ethernet3p2p.Install (ethernet3);
 
     //---------------------------------------------------------------------------------------------
     //Crear y Configurar Red Wifi
@@ -114,8 +149,6 @@ int main (int argc, char *argv[])
     NetDeviceContainer apDevices = wifi.Install (phy, wifiMac, APNodes);
     devices.Add (apDevices);
 
-
-
     //-----------------------------------------------------------------------------
     //RED PLC ("lan csma")
     CsmaHelper csma;
@@ -125,13 +158,13 @@ int main (int argc, char *argv[])
     NetDeviceContainer csmaDevices;
     csmaDevices = csma.Install (PLCNodes); 
 
-    devices.Add (csmaDevices);              
+    //devices.Add (csmaDevices);              
 
     //--------------------------------------------------------------------------------------
 
     //RED STA
     NetDeviceContainer STADevices = wifi.Install (phy, wifiMac, STANodes);
-    devices.Add (STADevices);
+    //devices.Add (STADevices);
 
     //Asignar Posiciones de Nodos
     MobilityHelper mobility;
@@ -158,29 +191,30 @@ int main (int argc, char *argv[])
     //Posciiones de Estaciones
     MobilityHelper STAmobility;
     Ptr<ListPositionAllocator> STApos = CreateObject<ListPositionAllocator> ();
-    positionAlloc->Add (Vector (58.9, 58.1, 0));    //0 - Asistente inteligente 1 (Living)
-    positionAlloc->Add (Vector (58.9, 68.0, 0));    //1 - Television 1 (Living)
-    positionAlloc->Add (Vector (58.9, 73.0, 0));    //2 - Consola de Videojuegos
-    positionAlloc->Add (Vector (48.0, 38.7, 0));    //3 - Alarma
-    positionAlloc->Add (Vector (25.5, 63.0, 0));    //4 - Lampara Inteligente 1 (Comedor)
-    positionAlloc->Add (Vector (25.6, 39.0, 0));    //5 - Control de Temperatura 1 (Comedor)   
-    positionAlloc->Add (Vector (64.0, 36.3, 0));    //6 - Equipo de Audio
-    positionAlloc->Add (Vector (12.7, 36.3, 0));    //7 - Television 2 (Dormitorio)
-    positionAlloc->Add (Vector (16.5, 14.4, 0));    //8 - Lampara Inteligente 2 (Dormitorio)
-    positionAlloc->Add (Vector (25.6, 14.4, 0));    //9 - Control de Temperatura 2 (Dormitorio)
-    positionAlloc->Add (Vector (06.0, 02.0, 0));    //10- Asistente inteligente 2 (Dormitorio) 
-    positionAlloc->Add (Vector (56.0, 02.5, 0));    //11- Notebook <-- Puede ser movil
-    positionAlloc->Add (Vector (49.0, 19.3, 0));    //12- Control de Temperatura 3 (Oficina)  
-    positionAlloc->Add (Vector (55.5, 19.3, 0));    //13- Lampara inteligente 3 (Oficina)
+    STApos->Add (Vector (58.9, 58.1, 0));    //0 - Asistente inteligente 1 (Living)
+    STApos->Add (Vector (58.9, 68.0, 0));    //1 - Television 1 (Living)
+    STApos->Add (Vector (58.9, 73.0, 0));    //2 - Consola de Videojuegos
+    STApos->Add (Vector (48.0, 38.7, 0));    //3 - Alarma
+    STApos->Add (Vector (25.5, 63.0, 0));    //4 - Lampara Inteligente 1 (Comedor)
+    STApos->Add (Vector (25.6, 39.0, 0));    //5 - Control de Temperatura 1 (Comedor)   
+    STApos->Add (Vector (64.0, 36.3, 0));    //6 - Equipo de Audio
+    STApos->Add (Vector (12.7, 36.3, 0));    //7 - Television 2 (Dormitorio)
+    STApos->Add (Vector (16.5, 14.4, 0));    //8 - Lampara Inteligente 2 (Dormitorio)
+    STApos->Add (Vector (25.6, 14.4, 0));    //9 - Control de Temperatura 2 (Dormitorio)
+    STApos->Add (Vector (06.0, 02.0, 0));    //10- Asistente inteligente 2 (Dormitorio) 
+    STApos->Add (Vector (56.0, 02.5, 0));    //11- Notebook <-- Puede ser movil
+    STApos->Add (Vector (49.0, 19.3, 0));    //12- Control de Temperatura 3 (Oficina)  
+    STApos->Add (Vector (55.5, 19.3, 0));    //13- Lampara inteligente 3 (Oficina)
     STAmobility.SetPositionAllocator (STApos);
     STAmobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-    STAmobility.Install(STANodes);  
-
+    STAmobility.Install(STANodes);
+    
     //------------------------------------------------
     if (printPos)
     {
         PrintPosition("AP", &APNodes);
         PrintPosition("PLC", &PLCNodes);
+        PrintPosition("STA", &STANodes);
     }
 
     //Config Internet
@@ -206,6 +240,8 @@ int main (int argc, char *argv[])
     //STA
     ipv4.SetBase ("10.1.4.0", "255.255.255.0");
     Ipv4InterfaceContainer staInterface = ipv4.Assign (STADevices);
+
+    //--------------------------------------------------------------------------------
 
     return 0;
 }
